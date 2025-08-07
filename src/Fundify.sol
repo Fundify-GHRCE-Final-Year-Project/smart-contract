@@ -3,7 +3,7 @@ pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts/access/OwnableUpgradeable.sol";
 
 struct Project {
     address owner; // Wallet address of the project's publisher
@@ -22,7 +22,7 @@ struct Investment {
     uint256 amount; // Amount of ETH funded
 }
 
-contract Fundify {
+contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     mapping(address => mapping(uint256 => Project)) projects;
     mapping(address => uint256) projectCount;
     mapping(address => mapping(uint256 => Investment)) investments;
@@ -53,6 +53,13 @@ contract Fundify {
         uint256 amount,
         uint256 timestamp
     );
+
+    function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
+
+    function initialize() public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+    }
 
     function createProject(uint256 _goal, uint256 _milestones) public {
         if (_goal == 0) revert InvalidInput();
