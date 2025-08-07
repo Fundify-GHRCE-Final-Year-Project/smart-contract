@@ -9,7 +9,6 @@ struct Project {
     // if 3 then 33, 66, 99, basically divide the goal by milestones, max 20
     uint256 funded; // Amount of ETH funded
     uint256 released; // Amount of ETH released
-    uint256 defunded; // Amount of ETH defuned
     bool ended; // Project funding is going on or not
 }
 
@@ -17,7 +16,6 @@ struct Investment {
     address projectOwner; // Wallet address of the project's publisher
     uint256 projectIndex; // Nth project of the project owner that user funded
     uint256 amount; // Amount of ETH funded
-    uint256 withdrawn; // Amount of ETH defunded
 }
 
 contract Fundify {
@@ -45,13 +43,6 @@ contract Fundify {
         uint256 projectIndex,
         uint256 timestamp
     );
-    event ProjectDefunded(
-        address funder,
-        uint256 amount,
-        address projectOwner,
-        uint256 projectIndex,
-        uint256 timestamp
-    );
     event ProjectFundsReleased(
         address owner,
         uint256 index,
@@ -70,7 +61,6 @@ contract Fundify {
         project.milestones = _milestones;
         project.funded = 0;
         project.released = 0;
-        project.defunded = 0;
         project.ended == false;
         emit ProjectCreated(
             msg.sender,
@@ -121,38 +111,6 @@ contract Fundify {
         );
     }
 
-    function defundProject(
-        address _projectOwner,
-        uint256 _projectIndex,
-        uint256 _investmentIndex,
-        uint256 _amount
-    ) external payable {
-        if (_projectOwner == address(0)) revert InvalidInput();
-        if (_projectIndex == 0) revert InvalidInput();
-        if (projectCount[_projectOwner] < _projectIndex) revert InvalidInput();
-        if (msg.value == 0) revert InvalidFunding();
-        Project storage project = projects[msg.sender][_projectIndex];
-        if (project.ended) revert ProjectEnded();
-        Investment storage investment = investments[msg.sender][
-            _investmentIndex
-        ];
-        if (investment.projectOwner != _projectOwner) revert InvalidInput();
-        if (investment.projectIndex != _projectIndex) revert InvalidInput();
-        uint256 remainingAmount = investment.amount - investment.withdrawn;
-        if (remainingAmount < _amount) revert InvalidInput();
-        investment.withdrawn += _amount;
-        project.defunded += _amount;
-        (bool sent, ) = payable(msg.sender).call{value: _amount}("");
-        if (!sent) revert EthereumTransferFailed();
-        emit ProjectDefunded(
-            msg.sender,
-            _amount,
-            _projectOwner,
-            _projectIndex,
-            block.timestamp
-        );
-    }
-
     function releaseFunds(
         uint256 _projectIndex,
         uint256 _amount
@@ -162,8 +120,7 @@ contract Fundify {
         if (projectCount[msg.sender] < _projectIndex) revert InvalidInput();
         Project storage project = projects[msg.sender][_projectIndex];
         if (project.ended) revert ProjectEnded();
-        uint256 remainingAmount = project.funded -
-            (project.defunded + project.released);
+        uint256 remainingAmount = project.funded - project.released;
         if (remainingAmount < _amount) revert InvalidInput();
         project.released += _amount;
         (bool sent, ) = payable(msg.sender).call{value: _amount}("");
@@ -175,8 +132,4 @@ contract Fundify {
             block.timestamp
         );
     }
-
-    // main problem is how funding is being tracked individually
-    // investor could take out funds when his inital funds were already released
-    // and if later investors want to defund, they can't since earlier investor took all
 }
