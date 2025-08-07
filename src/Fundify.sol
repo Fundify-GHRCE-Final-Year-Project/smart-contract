@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.22;
 
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/access/AccessControlUpgradeable.sol";
+
 struct Project {
     address owner; // Wallet address of the project's publisher
     uint256 index; // Index to query off chain database using owner and index, starts from 0 and onwards
