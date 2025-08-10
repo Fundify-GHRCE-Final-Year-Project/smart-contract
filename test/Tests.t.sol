@@ -6,15 +6,96 @@ import { Project, Investment } from "../src/Fundify.sol";
 import { TestSetUp } from "./TestSetUp.sol";
 
 contract Tests is TestSetUp {
-    function testProjectCreation() public {}
+    function testProjectCreation() public {
+        vm.startPrank(projectPublisher);
 
-    function testProjectCreationInvalidInputs() public {}
+        uint256 _goal = 1 ether;
+        uint256 _milestones = 1;
+        fundify.createProject(_goal, _milestones);
 
-    function testProjectFunding() public {}
+        uint256 projectCount = fundify.projectCount(projectPublisher);
+        assertEq(projectCount, 1, "1: Wrong project count");
 
-    function testProjectFundingInvalidInputs() public {}
+        (
+            address owner, 
+            uint256 index, 
+            uint256 goal,
+            uint256 milestones,
+            uint256 funded,
+            uint256 released,
+            bool ended
+        ) = fundify.projects(projectPublisher, 0);
 
-    function testProjectFundReleasing() public {}
+        assertEq(owner, projectPublisher, "1: Wrong project owner");
+        assertEq(index, 0, "1: Wrong project index");
+        assertEq(goal, _goal, "1: Wrong project goal");
+        assertEq(milestones, _milestones, "1: Wrong project milestones");
+        assertEq(funded, 0, "1: Wrong project fund value");
+        assertEq(released, 0, "1: Wrong project fund released value");
+        assertEq(ended, false, "1: Wrong project ended state");
 
-    function testProjectFundReleasingInvalidInputs() public {}
+        vm.stopPrank();
+    }
+
+    function testProjectCreationInvalidInputs() public {
+        vm.startPrank(user);
+
+        vm.stopPrank();
+    }
+
+    function testProjectFunding() public {
+        vm.startPrank(projectPublisher);
+
+        uint256 _goal = 10 ether;
+        uint256 _milestones = 5;
+        fundify.createProject(_goal, _milestones);
+
+        vm.stopPrank();
+
+        vm.startPrank(user);
+
+        uint256 balance = user.balance;
+        assertEq(balance, initialBalance, "Wrong initial eth balance");
+
+        uint256 investment = 3 ether;
+        fundify.fundProject{value: investment}(projectPublisher, 0);
+
+        (,,,,uint256 funded,,) = fundify.projects(projectPublisher, 0);
+        assertEq(funded, investment, "Wrong project fund value");
+
+        uint256 investmentCount = fundify.investmentCount(user);
+        assertEq(investmentCount, 1, "Wrong investment count value");
+
+        (
+            address projectOwner, 
+            uint256 projectIndex, 
+            uint256 amount
+        ) = fundify.investments(user, 0);
+        assertEq(projectOwner, projectPublisher, "Wrong invested project owner");    
+        assertEq(projectIndex, 0, "Wrong invested project index");
+        assertEq(amount, investment, "Wrong invested amount");
+
+        balance = user.balance;
+        assertEq(balance, initialBalance - investment, "Wrong initial eth balance");
+
+        vm.stopPrank();
+    }
+
+    function testProjectFundingInvalidInputs() public {
+        vm.startPrank(user);
+        
+        vm.stopPrank();
+    }
+
+    function testProjectFundReleasing() public {
+        vm.startPrank(user);
+        
+        vm.stopPrank();
+    }
+
+    function testProjectFundReleasingInvalidInputs() public {
+        vm.startPrank(user);
+        
+        vm.stopPrank();
+    }
 }

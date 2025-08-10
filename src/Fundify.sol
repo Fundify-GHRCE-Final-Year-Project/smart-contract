@@ -23,14 +23,22 @@ struct Investment {
 }
 
 contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
-    mapping(address => mapping(uint256 => Project)) projects;
-    mapping(address => uint256) projectCount;
-    mapping(address => mapping(uint256 => Investment)) investments;
-    mapping(address => uint256) investmentCount;
+    mapping(address => mapping(uint256 => Project)) public projects;
+    mapping(address => uint256) public projectCount;
+    mapping(address => mapping(uint256 => Investment)) public investments;
+    mapping(address => uint256) public investmentCount;
 
-    error InvalidInput();
-    error InvalidFunding();
+    error InvalidGoalInput();
+    error InvalidMilestonesInput();
+    error InvalidAddressInput();
+    error InvalidIndexInput();
+    error InvalidAmountInput();
+    error InvalidFundingAmount();
+
+    error AmountExceedsProjectGoal();
+    error AmountExceedsProjectFund();
     error ProjectEnded();
+
     error EthereumTransferFailed();
 
     event ProjectCreated(
@@ -42,6 +50,7 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     );
     event ProjectFunded(
         address funder,
+        uint256 investmentIndex,
         uint256 amount,
         address projectOwner,
         uint256 projectIndex,
@@ -62,9 +71,11 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function createProject(uint256 _goal, uint256 _milestones) public {
-        if (_goal == 0) revert InvalidInput();
-        if (_milestones == 0 || _milestones > 5) revert InvalidInput();
+        if (_goal == 0) revert InvalidGoalInput();
+        if (_milestones == 0 || _milestones > 5) revert InvalidMilestonesInput();
+
         uint256 projectIndex = projectCount[msg.sender]++;
+
         Project storage project = projects[msg.sender][projectIndex];
         project.owner = msg.sender;
         project.index = projectIndex;
@@ -73,6 +84,7 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         project.funded = 0;
         project.released = 0;
         project.ended == false;
+
         emit ProjectCreated(
             msg.sender,
             projectIndex,
@@ -84,28 +96,18 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     function fundProject(
         address _projectOwner,
-        uint256 _projectIndex,
-        uint256 _investmentIndex
+        uint256 _projectIndex
     ) external payable {
-        if (_projectOwner == address(0)) revert InvalidInput();
-        if (_projectIndex == 0) revert InvalidInput();
-        if (projectCount[_projectOwner] < _projectIndex) revert InvalidInput();
-        if (msg.value == 0) revert InvalidFunding();
-        Project storage project = projects[msg.sender][_projectIndex];
+        if (_projectOwner == address(0)) revert InvalidAddressInput();
+        if (projectCount[_projectOwner] < _projectIndex + 1) revert InvalidIndexInput();
+        if (msg.value == 0) revert InvalidFundingAmount();
+
+        Project storage project = projects[_projectOwner][_projectIndex];
         if (project.ended) revert ProjectEnded();
         uint256 amountAfterFunding = project.funded + msg.value;
-        if (amountAfterFunding > project.goal) revert InvalidInput();
-        uint256 totalInvestments = investmentCount[msg.sender];
-        uint256 investmentIndex = 0;
-        if (totalInvestments == 0) {
-            investmentIndex = 1;
-        } else if (totalInvestments < _investmentIndex) {
-            if (totalInvestments + 1 == _investmentIndex) {
-                investmentIndex = _investmentIndex;
-            } else revert InvalidInput();
-        } else {
-            investmentIndex = _investmentIndex;
-        }
+        if (amountAfterFunding > project.goal) revert AmountExceedsProjectGoal();
+
+        uint256 investmentIndex = investmentCount[msg.sender]++;
         Investment storage investment = investments[msg.sender][
             investmentIndex
         ];
@@ -113,8 +115,10 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         investment.projectIndex = _projectIndex;
         investment.amount += msg.value;
         project.funded = amountAfterFunding;
+        
         emit ProjectFunded(
             msg.sender,
+            investmentIndex,
             msg.value,
             _projectOwner,
             _projectIndex,
@@ -126,13 +130,12 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         uint256 _projectIndex,
         uint256 _amount
     ) external payable {
-        if (_projectIndex == 0) revert InvalidInput();
-        if (_amount == 0) revert InvalidInput();
-        if (projectCount[msg.sender] < _projectIndex) revert InvalidInput();
+        if (_amount == 0) revert InvalidAmountInput();
+        if (projectCount[msg.sender] < _projectIndex) revert InvalidIndexInput();
         Project storage project = projects[msg.sender][_projectIndex];
         if (project.ended) revert ProjectEnded();
         uint256 remainingAmount = project.funded - project.released;
-        if (remainingAmount < _amount) revert InvalidInput();
+        if (remainingAmount < _amount) revert AmountExceedsProjectFund();
         project.released += _amount;
         (bool sent, ) = payable(msg.sender).call{value: _amount}("");
         if (!sent) revert EthereumTransferFailed();

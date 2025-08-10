@@ -8,12 +8,18 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 contract TestSetUp is Test {
     Fundify public fundify;
-    address public user = address(1907);
+    address public owner = address(1906);
+    address public projectPublisher = address(1907);
+    address public user = address(1908);
+    address public treasury = address(1909);
+    uint256 initialBalance = 1e6 * 1 ether;
 
     function setUp() public {
-        vm.startPrank(user);
+        vm.deal(user, initialBalance);
+        vm.startPrank(owner);
 
         // Deploying the Fundify contract
+        fundify = new Fundify();
         bytes memory data = abi.encodeWithSelector(Fundify.initialize.selector);
         ERC1967Proxy proxy = new ERC1967Proxy(address(fundify), data);
         fundify = Fundify(address(proxy));
