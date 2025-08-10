@@ -133,7 +133,8 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         address to
     ) external payable {
         if (_amount == 0) revert InvalidAmountInput();
-        if (projectCount[msg.sender] < _projectIndex) revert InvalidIndexInput();
+        if (to == address(0)) revert InvalidAddressInput();
+        if (projectCount[msg.sender] < _projectIndex + 1) revert InvalidIndexInput();
         Project storage project = projects[msg.sender][_projectIndex];
         if (project.ended) revert ProjectEnded();
         uint256 remainingAmount = project.funded - project.released;

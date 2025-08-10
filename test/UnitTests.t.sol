@@ -5,7 +5,7 @@ import { console } from '@forge-std/Test.sol';
 import { Project, Investment } from "../src/Fundify.sol";
 import { TestSetUp } from "./TestSetUp.sol";
 
-contract Tests is TestSetUp {
+contract UnitTests is TestSetUp {
     function testProjectCreation() public {
         vm.startPrank(projectPublisher);
 
@@ -88,8 +88,32 @@ contract Tests is TestSetUp {
     }
 
     function testProjectFundReleasing() public {
+        vm.startPrank(projectPublisher);
+
+        uint256 _goal = 10 ether;
+        uint256 _milestones = 5;
+        fundify.createProject(_goal, _milestones);
+
+        vm.stopPrank();
+
         vm.startPrank(user);
-        
+
+        uint256 investment = 3 ether;
+        fundify.fundProject{value: investment}(projectPublisher, 0);
+
+        vm.stopPrank();
+
+        vm.startPrank(projectPublisher);
+
+        uint256 balance = treasury.balance;
+        assertEq(balance, 0, "1: Wrong Treasury Balance");
+
+        uint256 fundsToBeReleased = 1 ether;
+        fundify.releaseFunds(0, fundsToBeReleased, treasury);
+
+        balance = treasury.balance;
+        assertEq(balance, fundsToBeReleased, "2: Wrong Treasury Balance");
+
         vm.stopPrank();
     }
 
