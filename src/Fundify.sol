@@ -60,6 +60,7 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         address owner,
         uint256 index,
         uint256 amount,
+        address to,
         uint256 timestamp
     );
 
@@ -128,7 +129,8 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     function releaseFunds(
         uint256 _projectIndex,
-        uint256 _amount
+        uint256 _amount,
+        address to
     ) external payable {
         if (_amount == 0) revert InvalidAmountInput();
         if (projectCount[msg.sender] < _projectIndex) revert InvalidIndexInput();
@@ -136,13 +138,16 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         if (project.ended) revert ProjectEnded();
         uint256 remainingAmount = project.funded - project.released;
         if (remainingAmount < _amount) revert AmountExceedsProjectFund();
+
         project.released += _amount;
-        (bool sent, ) = payable(msg.sender).call{value: _amount}("");
+        (bool sent, ) = payable(to).call{value: _amount}("");
         if (!sent) revert EthereumTransferFailed();
+
         emit ProjectFundsReleased(
             msg.sender,
             _projectIndex,
             _amount,
+            to,
             block.timestamp
         );
     }
