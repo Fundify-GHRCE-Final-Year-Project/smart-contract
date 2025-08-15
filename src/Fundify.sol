@@ -13,7 +13,6 @@ struct Project {
     // if 3 then 33, 66, 99, basically divide the goal by milestones, max 20
     uint256 funded; // Amount of ETH funded
     uint256 released; // Amount of ETH released
-    bool ended; // Project funding is going on or not
 }
 
 struct Investment {
@@ -84,7 +83,6 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         project.milestones = _milestones;
         project.funded = 0;
         project.released = 0;
-        project.ended == false;
 
         emit ProjectCreated(
             msg.sender,
@@ -104,7 +102,7 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         if (msg.value == 0) revert InvalidFundingAmount();
 
         Project storage project = projects[_projectOwner][_projectIndex];
-        if (project.ended) revert ProjectEnded();
+        if (project.goal - project.funded == 0) revert ProjectEnded();
         uint256 amountAfterFunding = project.funded + msg.value;
         if (amountAfterFunding > project.goal) revert AmountExceedsProjectGoal();
 
@@ -136,7 +134,7 @@ contract Fundify is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         if (to == address(0)) revert InvalidAddressInput();
         if (projectCount[msg.sender] < _projectIndex + 1) revert InvalidIndexInput();
         Project storage project = projects[msg.sender][_projectIndex];
-        if (project.ended) revert ProjectEnded();
+        if (project.goal - project.funded == 0) revert ProjectEnded();
         uint256 remainingAmount = project.funded - project.released;
         if (remainingAmount < _amount) revert AmountExceedsProjectFund();
 
