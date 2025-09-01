@@ -22,8 +22,7 @@ contract UnitTests is TestSetUp {
             uint256 goal,
             uint256 milestones,
             uint256 funded,
-            uint256 released,
-            bool ended
+            uint256 released
         ) = fundify.projects(projectPublisher, 0);
 
         assertEq(owner, projectPublisher, "1: Wrong project owner");
@@ -32,7 +31,6 @@ contract UnitTests is TestSetUp {
         assertEq(milestones, _milestones, "1: Wrong project milestones");
         assertEq(funded, 0, "1: Wrong project fund value");
         assertEq(released, 0, "1: Wrong project fund released value");
-        assertEq(ended, false, "1: Wrong project ended state");
 
         vm.stopPrank();
     }
@@ -60,7 +58,7 @@ contract UnitTests is TestSetUp {
         uint256 investment = 3 ether;
         fundify.fundProject{value: investment}(projectPublisher, 0);
 
-        (,,,,uint256 funded,,) = fundify.projects(projectPublisher, 0);
+        (,,,,uint256 funded,) = fundify.projects(projectPublisher, 0);
         assertEq(funded, investment, "Wrong project fund value");
 
         uint256 investmentCount = fundify.investmentCount(user);
