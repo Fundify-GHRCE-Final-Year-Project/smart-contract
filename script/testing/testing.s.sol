@@ -66,5 +66,45 @@ contract DeployAndCreateFundify is Script {
         fundify.fundProject{value: 2 ether}(userPublicKey, 2);
 
         vm.stopBroadcast();
+
+        vm.startBroadcast(funder1PrivateKey);
+
+        fundify.createProject(10 ether, 2);
+        fundify.createProject(5 ether, 3);
+        fundify.createProject(20 ether, 4);
+
+        vm.stopBroadcast();
+
+        vm.startBroadcast(funder2PrivateKey);
+
+        fundify.createProject(10 ether, 2);
+        fundify.createProject(5 ether, 3);
+        fundify.createProject(20 ether, 4);
+
+        vm.stopBroadcast();
+
+        vm.startBroadcast(funder3PrivateKey);
+
+        fundify.createProject(10 ether, 2);
+        fundify.createProject(5 ether, 3);
+        fundify.createProject(20 ether, 4);
+
+        vm.stopBroadcast();
+
+        vm.startBroadcast(funder4PrivateKey);
+
+        fundify.createProject(10 ether, 2);
+        fundify.createProject(5 ether, 3);
+        fundify.createProject(20 ether, 4);
+
+        vm.stopBroadcast();
+
+        vm.startBroadcast(funder5PrivateKey);
+
+        fundify.createProject(10 ether, 2);
+        fundify.createProject(5 ether, 3);
+        fundify.createProject(20 ether, 4);
+
+        vm.stopBroadcast();
     }
 }
